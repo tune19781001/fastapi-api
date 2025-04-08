@@ -15,15 +15,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 日本株の株価・RSI・移動平均を取得（修正済）
+# 日本株の株価・RSI・移動平均を取得（安定版）
 @app.get("/stock")
 def get_stock_data(symbol: str):
     try:
         data = yf.Ticker(symbol).history(period="30d")
 
-        # データが取得できていない場合はエラーメッセージを返す
         if data is None or data.empty:
-            return {"error": "データが取得できませんでした（シンボルを確認してください）"}
+            return {
+                "symbol": symbol,
+                "price": None,
+                "volume": None,
+                "rsi": None,
+                "ma_5": None,
+                "ma_25": None,
+                "error": "データが取得できませんでした（シンボル確認）"
+            }
 
         latest = data.iloc[-1]
         price = float(latest["Close"])
@@ -41,10 +48,20 @@ def get_stock_data(symbol: str):
             "volume": volume,
             "rsi": rsi,
             "ma_5": ma_5,
-            "ma_25": ma_25
+            "ma_25": ma_25,
+            "error": None
         }
+
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "symbol": symbol,
+            "price": None,
+            "volume": None,
+            "rsi": None,
+            "ma_5": None,
+            "ma_25": None,
+            "error": str(e)
+        }
 
 # 為替（USD→JPY）を取得
 @app.get("/forex")
@@ -71,7 +88,7 @@ def get_forex_comment(rate):
     else:
         return "為替は中立圏"
 
-# 株価・為替をまとめて取得する/judgeエンドポイント
+# 株価・為替をまとめて取得する /judge エンドポイント
 @app.get("/judge")
 def judge(symbol: str = "7203.T"):
     try:
@@ -88,7 +105,8 @@ def judge(symbol: str = "7203.T"):
             "ma_5": stock.get("ma_5"),
             "ma_25": stock.get("ma_25"),
             "usd_jpy": forex.get("rate"),
-            "exchange_comment": get_forex_comment(forex.get("rate"))
+            "exchange_comment": get_forex_comment(forex.get("rate")),
+            "error": stock.get("error")
         }
 
     except Exception as e:
