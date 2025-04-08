@@ -54,6 +54,7 @@ def get_usd_to_jpy():
         "target": data.get("target_code"),
         "rate": round(data.get("conversion_rate", 0), 3)
     }
+
 # 為替レートに対する簡易コメントを返す関数
 def get_forex_comment(rate):
     if rate is None:
@@ -70,13 +71,12 @@ def get_forex_comment(rate):
 @app.get("/judge")
 def judge(symbol: str = "7203.T"):
     try:
-        # 株価データ取得（stockエンドポイントを内部で呼び出し）
-        stock = requests.get(f"http://localhost:8000/stock?symbol={symbol}").json()
+        # ※ Render に合わせて localhost → 外部URL に変更！
+        base_url = "https://judge-api-lcr4.onrender.com"
+        
+        stock = requests.get(f"{base_url}/stock?symbol={symbol}").json()
+        forex = requests.get(f"{base_url}/forex").json()
 
-        # 為替データ取得（forexエンドポイントを内部で呼び出し）
-        forex = requests.get("http://localhost:8000/forex").json()
-
-        # まとめて返すデータ
         return {
             "symbol": symbol,
             "price": stock.get("price"),
