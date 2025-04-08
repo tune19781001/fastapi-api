@@ -54,3 +54,39 @@ def get_usd_to_jpy():
         "target": data.get("target_code"),
         "rate": round(data.get("conversion_rate", 0), 3)
     }
+# 為替レートに対する簡易コメントを返す関数
+def get_forex_comment(rate):
+    if rate is None:
+        return "為替情報なし"
+
+    if rate > 150:
+        return "円安傾向（輸出関連に追い風）"
+    elif rate < 145:
+        return "円高傾向（輸入関連に追い風）"
+    else:
+        return "為替は中立圏"
+
+# 株価・為替をまとめて取得する/judgeエンドポイント
+@app.get("/judge")
+def judge(symbol: str = "7203.T"):
+    try:
+        # 株価データ取得（stockエンドポイントを内部で呼び出し）
+        stock = requests.get(f"http://localhost:8000/stock?symbol={symbol}").json()
+
+        # 為替データ取得（forexエンドポイントを内部で呼び出し）
+        forex = requests.get("http://localhost:8000/forex").json()
+
+        # まとめて返すデータ
+        return {
+            "symbol": symbol,
+            "price": stock.get("price"),
+            "volume": stock.get("volume"),
+            "rsi": stock.get("rsi"),
+            "ma_5": stock.get("ma_5"),
+            "ma_25": stock.get("ma_25"),
+            "usd_jpy": forex.get("rate"),
+            "exchange_comment": get_forex_comment(forex.get("rate"))
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
